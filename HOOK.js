@@ -219,6 +219,9 @@
             .rcst-badge { padding: 1px 4px; border-radius: 3px; font-weight: bold; margin-right: 4px; }
             .badge-xhr { background: #f9e2af; color: #11111b; }
             .badge-fetch { background: #a6e3a1; color: #11111b; }
+            .badge-ws-send { background: #fab387; color: #11111b; }
+            .badge-ws-recv { background: #94e2d5; color: #11111b; }
+            .badge-ws-open { background: #74c7ec; color: #11111b; }
             .badge-clickstream { background: #cba6f7; color: #11111b; }
             .badge-modified { background: #a6e3a1; color: #11111b; }
             .badge-blocked { background: #f38ba8; color: #11111b; }
@@ -452,6 +455,9 @@
     function addLogToUI(data) {
         let badgeClass = 'badge-xhr';
         if (data.type.startsWith('fetch')) badgeClass = 'badge-fetch';
+        else if (data.type === 'ws-send') badgeClass = 'badge-ws-send';
+        else if (data.type === 'ws-recv') badgeClass = 'badge-ws-recv';
+        else if (data.type === 'ws-open') badgeClass = 'badge-ws-open';
 
         const isClickstream = data.url.includes('clickstream');
         if (isClickstream) badgeClass = 'badge-clickstream';
@@ -510,7 +516,7 @@
         }
 
         if (hasBody) {
-            argsHtml += `<div><span class="rcst-title">Request Body:</span></div>`;
+            argsHtml += `<div><span class="rcst-title">Payload / Body:</span></div>`;
             argsHtml += `<div class="rcst-args-box">${escapeHtml(typeof args.parsedBody === 'object' ? JSON.stringify(args.parsedBody, null, 2) : String(args.parsedBody))}</div>`;
         }
 
@@ -570,7 +576,7 @@
         return headers;
     }
 
-    // --- 4. INTERCEPTADORES DE REDE ---
+    // --- 4. INTERCEPTADORES DE REDE (XHR & Fetch) ---
     var oO = XMLHttpRequest.prototype.open, oS = XMLHttpRequest.prototype.send, oH = XMLHttpRequest.prototype.setRequestHeader;
     XMLHttpRequest.prototype.open = function (m, u) { this.__m = m; this.__u = u; this.__h = {}; return oO.apply(this, arguments); };
     XMLHttpRequest.prototype.setRequestHeader = function (n, v) { this.__h[n] = v; };
@@ -653,5 +659,71 @@
         });
     };
 
-    console.log("[RCST Inspector] Inicializado com sucesso! Aba 'Hooks Storage' adicionada.");
+    // --- 5. INTERCEPTADOR DE WEBSOCKETS ---
+    const NativeWebSocket = window.WebSocket;
+
+    function CustomWebSocket(url, protocols) {
+        const wsInstance = protocols ? new NativeWebSocket(url, protocols) : new NativeWebSocket(url);
+        let wsUrl = url;
+
+        if (isBlocked(wsUrl)) {
+            addLogToUI({ type: 'ws-send', method: 'WS-BLOCKED', url: wsUrl, status: 0, responseBody: 'WebSocket bloqueado no momento do handshake.', blocked: true });
+            wsInstance.close();
+            return wsInstance;
+        }
+
+        addLogToUI({ type: 'ws-open', method: 'WS-OPEN', url: wsUrl, status: 101, responseBody: 'Conexão WebSocket iniciada.' });
+
+        // Intercepta envio (send)
+        const originalSend = wsInstance.send;
+        wsInstance.send = function (data) {
+            let bodyStr = typeof data === 'string' ? data : (data instanceof ArrayBuffer ? '[ArrayBuffer Data]' : String(data));
+            let d = { type: 'ws-send', method: 'WS-SEND', url: wsUrl, body: bodyStr };
+            
+            applyHooks(d);
+
+            if (isBlocked(wsUrl)) {
+                addLogToUI({ type: 'ws-send', method: 'WS-SEND', url: wsUrl, body: d.body, blocked: true });
+                return;
+            }
+
+            addLogToUI({
+                type: 'ws-send',
+                method: 'WS-SEND',
+                url: wsUrl,
+                body: d.body,
+                modified: d.body !== bodyStr || d.modified
+            });
+
+            return originalSend.call(this, d.body);
+        };
+
+        // Intercepta recepção (onmessage / addEventListener)
+        wsInstance.addEventListener('message', function (event) {
+            let msgData = typeof event.data === 'string' ? event.data : (event.data instanceof ArrayBuffer ? '[ArrayBuffer Data]' : String(event.data));
+            let d = { type: 'ws-recv', method: 'WS-RECV', url: wsUrl, responseBody: msgData };
+            
+            applyHooks(d);
+
+            addLogToUI({
+                type: 'ws-recv',
+                method: 'WS-RECV',
+                url: wsUrl,
+                responseBody: d.responseBody || msgData,
+                modified: d.modified
+            });
+        });
+
+        return wsInstance;
+    }
+
+    // Copia protótipos e constantes estáticas do WebSocket nativo (CONNECTING, OPEN, CLOSING, CLOSED)
+    CustomWebSocket.prototype = NativeWebSocket.prototype;
+    Object.keys(NativeWebSocket).forEach(key => {
+        CustomWebSocket[key] = NativeWebSocket[key];
+    });
+
+    window.WebSocket = CustomWebSocket;
+
+    console.log("[RCST Inspector] Inicializado com sucesso! Suporte a WebSockets (WS/WSS) ativado.");
 })();
