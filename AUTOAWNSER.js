@@ -12,8 +12,9 @@
         githubRepo: localStorage.getItem('__rcst_ghRepo') || 'Sc-Rhyan57/SCRIPTSCHROME',
         githubPath: localStorage.getItem('__rcst_ghPath') || 'RESPOSTAS/conhecidas.json',
         githubToken: localStorage.getItem('__rcst_ghToken') || '',
-        aiProvider: localStorage.getItem('__rcst_ai') || 'gemini',
+        aiProvider: localStorage.getItem('__rcst_ai') || 'gemini-flash',
         aiKey: localStorage.getItem('__rcst_key') || '',
+        cloudflareAccountId: localStorage.getItem('__rcst_cfId') || '',
         promptTemplate: localStorage.getItem('__rcst_prompt') || 'Analise as questões abaixo. Retorne um array JSON válido. Formato: [{"Question": "texto pergunta", "Anwser": "A", "id": "uuid"}].\n\nQuestões:\n{questions}',
         authToken: '',
         answers: new Map(),
@@ -121,10 +122,8 @@
     try {
         _defProp(_xhrProto, 'open', { value: hookedOpen, configurable: true, writable: true });
         _defProp(hookedOpen, 'toString', { value: () => _openStr, configurable: true, writable: true });
-        
         _defProp(_xhrProto, 'send', { value: hookedSend, configurable: true, writable: true });
         _defProp(hookedSend, 'toString', { value: () => _sendStr, configurable: true, writable: true });
-        
         _defProp(_xhrProto, 'setRequestHeader', { value: hookedSetHeader, configurable: true, writable: true });
         _defProp(hookedSetHeader, 'toString', { value: () => _setHeaderStr, configurable: true, writable: true });
     } catch (e) {}
@@ -162,37 +161,80 @@
         if (!S.aiKey) return null;
         try {
             let resText = '';
-            const openAiFormat = (url, model, key) => _fetch.call(window, url, {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+            const openAiFormat = (url, model, key, extraHeaders = {}) => _fetch.call(window, url, {
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}`, ...extraHeaders },
                 body: JSON.stringify({ model: model, messages: [{ role: 'user', content: prompt }], temperature: 0 })
             });
             
-            if (S.aiProvider === 'openai') resText = (await (await openAiFormat('https://api.openai.com/v1/chat/completions', 'gpt-4o-mini', S.aiKey)).json()).choices[0].message.content;
-            else if (S.aiProvider === 'groq') resText = (await (await openAiFormat('https://api.groq.com/openai/v1/chat/completions', 'llama3-8b-8192', S.aiKey)).json()).choices[0].message.content;
-            else if (S.aiProvider === 'deepseek') resText = (await (await openAiFormat('https://api.deepseek.com/v1/chat/completions', 'deepseek-chat', S.aiKey)).json()).choices[0].message.content;
-            else if (S.aiProvider === 'mistral') resText = (await (await openAiFormat('https://api.mistral.ai/v1/chat/completions', 'mistral-tiny', S.aiKey)).json()).choices[0].message.content;
-            else if (S.aiProvider === 'huggingface') resText = (await (await openAiFormat('https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct/v1', 'meta-llama/Meta-Llama-3-8B-Instruct', S.aiKey)).json()).choices[0].message.content;
-            else if (S.aiProvider === 'gemini') {
+            const provider = S.aiProvider.toLowerCase();
+
+            if (provider === 'openai') resText = (await (await openAiFormat('https://api.openai.com/v1/chat/completions', 'gpt-4o-mini', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'openai-gpt4o') resText = (await (await openAiFormat('https://api.openai.com/v1/chat/completions', 'gpt-4o', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'claude-haiku') {
+                const res = await _fetch.call(window, 'https://api.anthropic.com/v1/messages', {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': S.aiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+                    body: JSON.stringify({ model: 'claude-3-haiku-20240307', max_tokens: 2048, messages: [{ role: 'user', content: prompt }] })
+                });
+                resText = (await res.json()).content[0].text;
+            }
+            else if (provider === 'claude-sonnet') {
+                const res = await _fetch.call(window, 'https://api.anthropic.com/v1/messages', {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json', 'x-api-key': S.aiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+                    body: JSON.stringify({ model: 'claude-3-5-sonnet-latest', max_tokens: 2048, messages: [{ role: 'user', content: prompt }] })
+                });
+                resText = (await res.json()).content[0].text;
+            }
+            else if (provider === 'gemini-flash') {
                 const res = await _fetch.call(window, `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${S.aiKey}`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
                 resText = (await res.json()).candidates[0].content.parts[0].text;
-            } else if (S.aiProvider === 'claude') {
-                const res = await _fetch.call(window, 'https://api.anthropic.com/v1/messages', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': S.aiKey, 'anthropic-version': '2023-06-01' },
-                    body: JSON.stringify({ model: 'claude-3-haiku-20240307', max_tokens: 1024, messages: [{ role: 'user', content: prompt }] })
+            }
+            else if (provider === 'gemini-pro') {
+                const res = await _fetch.call(window, `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${S.aiKey}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
-                resText = (await res.json()).content[0].text;
-            } else if (S.aiProvider === 'cohere') {
-                const res = await _fetch.call(window, 'https://api.cohere.ai/v1/chat', {
+                resText = (await res.json()).candidates[0].content.parts[0].text;
+            }
+            else if (provider === 'deepseek') resText = (await (await openAiFormat('https://api.deepseek.com/v1/chat/completions', 'deepseek-chat', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'deepseek-reasoner') resText = (await (await openAiFormat('https://api.deepseek.com/v1/chat/completions', 'deepseek-reasoner', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'groq') resText = (await (await openAiFormat('https://api.groq.com/openai/v1/chat/completions', 'llama-3.1-8b-instant', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'groq-large') resText = (await (await openAiFormat('https://api.groq.com/openai/v1/chat/completions', 'llama-3.3-70b-versatile', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'mistral') resText = (await (await openAiFormat('https://api.mistral.ai/v1/chat/completions', 'open-mistral-7b', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'mistral-large') resText = (await (await openAiFormat('https://api.mistral.ai/v1/chat/completions', 'mistral-large-latest', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'openrouter-llama') resText = (await (await openAiFormat('https://openrouter.ai/api/v1/chat/completions', 'meta-llama/llama-3.1-8b-instruct:free', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'openrouter-auto') resText = (await (await openAiFormat('https://openrouter.ai/api/v1/chat/completions', 'openrouter/auto', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'together-llama') resText = (await (await openAiFormat('https://api.together.xyz/v1/chat/completions', 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'together-qwen') resText = (await (await openAiFormat('https://api.together.xyz/v1/chat/completions', 'Qwen/Qwen2.5-72B-Instruct-Turbo', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'fireworks') resText = (await (await openAiFormat('https://api.fireworks.ai/inference/v1/chat/completions', 'accounts/fireworks/models/llama-v3p1-8b-instruct', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'perplexity') resText = (await (await openAiFormat('https://api.perplexity.ai/chat/completions', 'llama-3.1-sonar-small-128k-online', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'xai' || provider === 'grok') resText = (await (await openAiFormat('https://api.x.ai/v1/chat/completions', 'grok-beta', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'sambanova') resText = (await (await openAiFormat('https://api.sambanova.ai/v1/chat/completions', 'Meta-Llama-3.1-8B-Instruct', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'novita') resText = (await (await openAiFormat('https://api.novita.ai/v3/openai/chat/completions', 'meta-llama/llama-3.1-8b-instruct', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'nebius') resText = (await (await openAiFormat('https://api.studio.nebius.ai/v1/chat/completions', 'meta-llama/Meta-Llama-3.1-8B-Instruct', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'cloudflare') {
+                const cfId = S.cloudflareAccountId || 'seu-account-id';
+                resText = (await (await openAiFormat(`https://api.cloudflare.com/client/v4/accounts/${cfId}/ai/v1/chat/completions`, '@cf/meta/llama-3-8b-instruct', S.aiKey)).json()).choices[0].message.content;
+            }
+            else if (provider === 'huggingface') resText = (await (await openAiFormat('https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct/v1/chat/completions', 'meta-llama/Meta-Llama-3-8B-Instruct', S.aiKey)).json()).choices[0].message.content;
+            else if (provider === 'cohere') {
+                const res = await _fetch.call(window, 'https://api.cohere.com/v1/chat', {
                     method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${S.aiKey}` },
                     body: JSON.stringify({ message: prompt, temperature: 0 })
                 });
                 resText = (await res.json()).text;
             }
+
             return resText;
-        } catch (e) { return null; }
+        } catch (e) { 
+            console.error('Erro ao chamar o provedor [' + S.aiProvider + ']:', e); 
+            return null; 
+        }
     }
 
     async function processApiResponse(data) {
@@ -331,7 +373,7 @@
             const putRes = await _fetch.call(window, apiUrl, {
                 method: 'PUT',
                 headers: { Authorization: `token ${S.githubToken}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: '[ RCST ] Adicionando novas questões para database via api.', content: newContent, sha: sha })
+                body: JSON.stringify({ message: 'Update DB via RCST Solver', content: newContent, sha: sha })
             });
             if (putRes.ok) {
                 alert('Commitado no GitHub com sucesso!');
@@ -563,21 +605,57 @@
                     <div class="rcst-field">
                         <label>Provedor de IA</label>
                         <select id="cfg-aiProvider">
-                            <option value="gemini" ${S.aiProvider === 'gemini' ? 'selected' : ''}>Google Gemini</option>
-                            <option value="openai" ${S.aiProvider === 'openai' ? 'selected' : ''}>OpenAI (GPT-4o)</option>
-                            <option value="claude" ${S.aiProvider === 'claude' ? 'selected' : ''}>Anthropic Claude</option>
-                            <option value="groq" ${S.aiProvider === 'groq' ? 'selected' : ''}>Groq (Llama 3)</option>
-                            <option value="deepseek" ${S.aiProvider === 'deepseek' ? 'selected' : ''}>DeepSeek</option>
-                            <option value="mistral" ${S.aiProvider === 'mistral' ? 'selected' : ''}>Mistral AI</option>
-                            <option value="cohere" ${S.aiProvider === 'cohere' ? 'selected' : ''}>Cohere</option>
-                            <option value="huggingface" ${S.aiProvider === 'huggingface' ? 'selected' : ''}>HuggingFace</option>
+                            <optgroup label="OpenAI">
+                                <option value="openai" ${S.aiProvider === 'openai' ? 'selected' : ''}>OpenAI (GPT-4o mini)</option>
+                                <option value="openai-gpt4o" ${S.aiProvider === 'openai-gpt4o' ? 'selected' : ''}>OpenAI (GPT-4o)</option>
+                            </optgroup>
+                            <optgroup label="Anthropic">
+                                <option value="claude-haiku" ${S.aiProvider === 'claude-haiku' ? 'selected' : ''}>Claude 3 Haiku</option>
+                                <option value="claude-sonnet" ${S.aiProvider === 'claude-sonnet' ? 'selected' : ''}>Claude 3.5 Sonnet</option>
+                            </optgroup>
+                            <optgroup label="Google">
+                                <option value="gemini-flash" ${S.aiProvider === 'gemini-flash' ? 'selected' : ''}>Gemini 1.5 Flash</option>
+                                <option value="gemini-pro" ${S.aiProvider === 'gemini-pro' ? 'selected' : ''}>Gemini 1.5 Pro</option>
+                            </optgroup>
+                            <optgroup label="Outros Diretos">
+                                <option value="deepseek" ${S.aiProvider === 'deepseek' ? 'selected' : ''}>DeepSeek</option>
+                                <option value="deepseek-reasoner" ${S.aiProvider === 'deepseek-reasoner' ? 'selected' : ''}>DeepSeek Reasoner</option>
+                                <option value="groq" ${S.aiProvider === 'groq' ? 'selected' : ''}>Groq (Llama 3.1 8B)</option>
+                                <option value="groq-large" ${S.aiProvider === 'groq-large' ? 'selected' : ''}>Groq (Llama 3.3 70B)</option>
+                                <option value="mistral" ${S.aiProvider === 'mistral' ? 'selected' : ''}>Mistral 7B</option>
+                                <option value="mistral-large" ${S.aiProvider === 'mistral-large' ? 'selected' : ''}>Mistral Large</option>
+                                <option value="cohere" ${S.aiProvider === 'cohere' ? 'selected' : ''}>Cohere</option>
+                                <option value="xai" ${S.aiProvider === 'xai' ? 'selected' : ''}>xAI (Grok)</option>
+                                <option value="perplexity" ${S.aiProvider === 'perplexity' ? 'selected' : ''}>Perplexity AI</option>
+                            </optgroup>
+                            <optgroup label="Agregadores">
+                                <option value="openrouter-llama" ${S.aiProvider === 'openrouter-llama' ? 'selected' : ''}>OpenRouter (Llama 8B Free)</option>
+                                <option value="openrouter-auto" ${S.aiProvider === 'openrouter-auto' ? 'selected' : ''}>OpenRouter (Auto)</option>
+                                <option value="together-llama" ${S.aiProvider === 'together-llama' ? 'selected' : ''}>Together AI (Llama)</option>
+                                <option value="together-qwen" ${S.aiProvider === 'together-qwen' ? 'selected' : ''}>Together AI (Qwen)</option>
+                                <option value="fireworks" ${S.aiProvider === 'fireworks' ? 'selected' : ''}>Fireworks AI</option>
+                                <option value="sambanova" ${S.aiProvider === 'sambanova' ? 'selected' : ''}>SambaNova</option>
+                                <option value="novita" ${S.aiProvider === 'novita' ? 'selected' : ''}>Novita AI</option>
+                                <option value="nebius" ${S.aiProvider === 'nebius' ? 'selected' : ''}>Nebius AI</option>
+                                <option value="huggingface" ${S.aiProvider === 'huggingface' ? 'selected' : ''}>HuggingFace</option>
+                            </optgroup>
+                            <optgroup label="Cloud">
+                                <option value="cloudflare" ${S.aiProvider === 'cloudflare' ? 'selected' : ''}>Cloudflare Workers AI</option>
+                            </optgroup>
                         </select>
                     </div>
                     <div class="rcst-field"><label>IA API Key</label><input type="password" id="cfg-aiKey" value="${S.aiKey}"></div>
+                    <div class="rcst-field" id="cf-id-field" style="display: ${S.aiProvider === 'cloudflare' ? 'flex' : 'none'};">
+                        <label>Cloudflare Account ID</label>
+                        <input type="text" id="cfg-cfId" value="${S.cloudflareAccountId}">
+                    </div>
                     <div class="rcst-field"><label>Prompt Customizado (Variável: {questions})</label><textarea id="cfg-promptTemplate" rows="6">${S.promptTemplate}</textarea></div>
                     <button id="rcst-btn-save" class="rcst-btn active" style="margin-top:10px;">SALVAR TUDO</button>
                 </div>
             `;
+            document.getElementById('cfg-aiProvider').addEventListener('change', (e) => {
+                document.getElementById('cf-id-field').style.display = e.target.value === 'cloudflare' ? 'flex' : 'none';
+            });
             document.getElementById('rcst-btn-save').addEventListener('click', () => {
                 S.dbUrl = document.getElementById('cfg-dbUrl').value || S.dbUrl;
                 S.githubRepo = document.getElementById('cfg-ghRepo').value || S.githubRepo;
@@ -585,6 +663,7 @@
                 S.githubToken = document.getElementById('cfg-ghToken').value || S.githubToken;
                 S.aiProvider = document.getElementById('cfg-aiProvider').value || S.aiProvider;
                 S.aiKey = document.getElementById('cfg-aiKey').value || S.aiKey;
+                S.cloudflareAccountId = document.getElementById('cfg-cfId').value || S.cloudflareAccountId;
                 S.promptTemplate = document.getElementById('cfg-promptTemplate').value || S.promptTemplate;
                 localStorage.setItem('__rcst_dbUrl', S.dbUrl);
                 localStorage.setItem('__rcst_ghRepo', S.githubRepo);
@@ -592,6 +671,7 @@
                 localStorage.setItem('__rcst_ghToken', S.githubToken);
                 localStorage.setItem('__rcst_ai', S.aiProvider);
                 localStorage.setItem('__rcst_key', S.aiKey);
+                localStorage.setItem('__rcst_cfId', S.cloudflareAccountId);
                 localStorage.setItem('__rcst_prompt', S.promptTemplate);
                 loadDatabase();
                 alert('Salvo!');
