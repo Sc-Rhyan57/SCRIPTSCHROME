@@ -1,4 +1,94 @@
 {
+  "url": "",
+  "method": "GET",
+  "status": 200,
+  "requestHeaders": {
+    "rsc": "1",
+    "next-router-prefetch": "1",
+    "next-router-segment-prefetch": "/_tree",
+    "next-url": "/usuarios"
+  },
+  "queryParams": {},
+  "requestBody": null,
+  "decodedPayload": null,
+  "responseHeaders": {
+    "alt-svc": "h3=\":443\"; ma=86400",
+    "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "cf-ray": "a5cf6150fdefa484-GRU",
+    "content-encoding": "zstd",
+    "content-type": "text/x-component",
+    "date": "Thu, 19 Nov 2026 12:57:20 GMT",
+    "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+    "priority": "u=3,i",
+    "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=eGCVPSV4Y9D43m4RkhGpfcsvsBF9AyuGVVneeP9RCNeftmO9ixOP%2FC%2FnIv8EJQAK%2FHlmjrlCsrvxjmDzkTIGZ07MDjK%2FRxe4ubAfKGEHyYGCGhrJ%2Fi4o%2FuWQDhPXrWGm64NgADQYQA%3D%3D\"}]}",
+    "server": "cloudflare",
+    "server-timing": "cfExtPri",
+    "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "x-opennext": "1"
+  },
+  "responseBody": "0:{\"f\":[[[\"\",{\"children\":[\"usuarios\",{\"children\":[\"__PAGE__\",{},\"$undefined\",\"$undefined\",4096]},\"$undefined\",\"$undefined\",4096]},\"$undefined\",\"$undefined\",4112],null,[null,null],true]],\"q\":\"\",\"i\":false,\"S\":false,\"h\":null,\"r\":\"$undefined\",\"b\":\"hwVu5ptJg76hNJshsHIuM\"}\n"
+}
+
+{
+  "url": "",
+  "method": "GET",
+  "status": 200,
+  "requestHeaders": {
+    "rsc": "1",
+    "next-router-prefetch": "1",
+    "next-router-segment-prefetch": "/_tree",
+    "next-url": "/usuarios"
+  },
+  "queryParams": {},
+  "requestBody": null,
+  "decodedPayload": null,
+  "responseHeaders": {
+    "alt-svc": "h3=\":443\"; ma=86400",
+    "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "cf-ray": "a5cf62e6abdc36f6-GRU",
+    "content-encoding": "zstd",
+    "content-type": "text/x-component",
+    "date": "Thu, 19 Nov 2026 12:58:25 GMT",
+    "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+    "priority": "u=3,i",
+    "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=iS51KqHj%2BrSnEHugavG2wV9oGq2v05%2BW8uqAVd%2FYxh13oXXdn5W8R7rx%2FJVten1K5QMV%2F0yl7EDMDWBuzT3ZVfZbFOfYbet0Xmjf%2FoAErw38SBrRzBBbACimQXQtZgerq2X%2Fmqmnsw%3D%3D\"}]}",
+    "server": "cloudflare",
+    "server-timing": "cfExtPri",
+    "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "x-opennext": "1"
+  },
+  "responseBody": "0:{\"f\":[[[\"\",{\"children\":[\"usuarios\",{\"children\":[\"__PAGE__\",{},\"$undefined\",\"$undefined\",4096]},\"$undefined\",\"$undefined\",4096]},\"$undefined\",\"$undefined\",4112],null,[null,null],true]],\"q\":\"\",\"i\":false,\"S\":false,\"h\":null,\"r\":\"$undefined\",\"b\":\"hwVu5ptJg76hNJshsHIuM\"}\n"
+}
+
+{
+  "url": "/api/auth/me?_t=1795093144100",
+  "method": "GET",
+  "status": 200,
+  "requestHeaders": {
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Pragma": "no-cache"
+  },
+  "queryParams": {
+    "_t": "1795093144100"
+  },
+  "requestBody": null,
+  "decodedPayload": null,
+  "responseHeaders": {
+    "alt-svc": "h3=\":443\"; ma=86400",
+    "cf-ray": "a5cf63d649fff1b7-GRU",
+    "content-encoding": "zstd",
+    "content-type": "application/json",
+    "date": "Thu, 19 Nov 2026 12:59:04 GMT",
+    "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+    "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=xPaCVOvY96pCtqJ%2FWOhgC%2FjhrMxE02WdWLKZHS0SivzuLWF9C5oMiTiw9XyUGgyGHcr992ACwiRLeO8tcZx0an3YQp2OazFMr6pw6mzB8ixWU%2FxH6PGqwd3yEhJrysVTH92e6uCFIQ%3D%3D\"}]}",
+    "server": "cloudflare",
+    "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "x-opennext": "1"
+  },
+  "responseBody": "{\"authenticated\":false,\"isDiscordAuth\":false}"
+}
+
+{
   "url": "/api/auth/me?_t=1795088764955",
   "method": "GET",
   "status": 200,
