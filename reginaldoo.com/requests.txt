@@ -54,4 +54,79 @@
   "responseBody": "{\"player\":{\"user_id\":\"775061158276235274\",\"username\":\"void_11131\",\"wallet\":0,\"bank\":1259.07,\"job_id\":\"SEGURANCA\",\"xp\":335,\"streak\":4,\"warnings\":0,\"last_shift_at\":0,\"loan_debt\":0,\"loan_cycles\":0,\"agiota_debt\":0,\"agiota_cycles\":0,\"last_interest_at\":0,\"level\":3,\"bio\":\"\",\"avatar_url\":\"https://cdn.discordapp.com/avatars/775061158276235274/236432be76042adc227d1648075031b6.png?size=512\",\"banner_url\":\"\",\"title_badge\":\"\",\"badge_color\":\"\"},\"threads\":[{\"id\":\"thread_1795034372179_4httc\",\"title\":\"Sei não\",\"description\":\"Oi, eu sou o uzoles\\nE eu sou o designer de todas as artes do Reginaldoo :D\",\"category\":\"Geral\",\"author\":\"nicolasbdl.\",\"author_id\":\"1483119853480185998\",\"replies\":0,\"created_at\":1795034372179,\"slug\":\"thread_1795034372179_4httc\",\"date\":\"18 de nov. de 2026\"},{\"id\":\"thread_1794973859289_7j97p\",\"title\":\"Oi\",\"description\":\"Teste\",\"category\":\"Geral\",\"author\":\"brutalvicious.\",\"author_id\":\"1526427958846427196\",\"replies\":0,\"created_at\":1794973859289,\"slug\":\"thread_1794973859289_7j97p\",\"date\":\"18 de nov. de 2026\"}],\"availableRoles\":[],\"isDiscordAuth\":false}"
 }
 
+{
+  "url": "/cdn-cgi/rum?",
+  "method": "POST",
+  "status": 204,
+  "requestHeaders": {
+    "content-type": "application/json"
+  },
+  "queryParams": {},
+  "requestBody": {
+    "startTime": 1795092115254,
+    "pageloadId": "e8562bfe-5e41-4afd-ac96-af60a4217fcf",
+    "n": 4,
+    "eventType": 1,
+    "nt": "soft-navigation",
+    "location": "https://forum.reginaldoo.com/perfil",
+    "referrer": "https://forum.reginaldoo.com/studio",
+    "versions": {
+      "fl": "2024.11.0",
+      "js": "2026.10.1",
+      "timings": 1
+    },
+    "bi": {
+      "be": "Blink",
+      "bev": "157",
+      "bv": "157",
+      "ov": "10"
+    },
+    "siteToken": "42a1a043f14d4a9e946b4ff7d43f6aa2",
+    "st": 2
+  },
+  "decodedPayload": null,
+  "responseHeaders": {
+    "access-control-allow-credentials": "true",
+    "access-control-allow-methods": "POST,OPTIONS",
+    "access-control-allow-origin": "https://forum.reginaldoo.com",
+    "access-control-max-age": "86400",
+    "alt-svc": "h3=\":443\"; ma=86400",
+    "cf-ray": "a5cf4cfd9d91f1b7-GRU",
+    "content-type": "text/plain",
+    "date": "Thu, 19 Nov 2026 12:43:28 GMT",
+    "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+    "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=vL0WAYAuJGX6ovkyaS%2BU%2BBWVHcBtUOHkyiqRrmEkTrOm9TMOE0GnA2nCA4RiL1Ie3eaTkN%2F9RG1kf0K4Qwf3oTfKqNuWLYHjMZYYESGm%2BfR2M4L4IYhBxGfpqKTC3RHq%2FoCdKsNj4g%3D%3D\"}]}",
+    "server": "cloudflare",
+    "vary": "Origin"
+  },
+  "responseBody": ""
+}
 
+
+{
+  "url": "/api/perfil?userId=795448741112578059&viewerId=vis_mwnhk1o7_00ns8",
+  "method": "GET",
+  "status": 500,
+  "requestHeaders": {},
+  "queryParams": {
+    "userId": "795448741112578059",
+    "viewerId": "vis_mwnhk1o7_00ns8"
+  },
+  "requestBody": null,
+  "decodedPayload": null,
+  "responseHeaders": {
+    "alt-svc": "h3=\":443\"; ma=86400",
+    "cache-control": "private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0",
+    "cf-ray": "a5cf4ab78cd61aba-GRU",
+    "content-length": "4637",
+    "content-type": "text/html; charset=UTF-8",
+    "date": "Thu, 19 Nov 2026 12:41:55 GMT",
+    "expires": "Thu, 01 Jan 1970 00:00:01 GMT",
+    "priority": "u=1,i",
+    "referrer-policy": "same-origin",
+    "server": "cloudflare",
+    "server-timing": "cfExtPri",
+    "x-frame-options": "SAMEORIGIN"
+  },
+  "responseBody": "<!DOCTYPE html>\n<!--[if lt IE 7]> <html class=\"no-js ie6 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 7]>    <html class=\"no-js ie7 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if IE 8]>    <html class=\"no-js ie8 oldie\" lang=\"en-US\"> <![endif]-->\n<!--[if gt IE 8]><!--> <html class=\"no-js\" lang=\"en-US\"> <!--<![endif]-->\n<head>\n<title>Worker threw exception | forum.reginaldoo.com | Cloudflare</title>\n<meta charset=\"UTF-8\" />\n<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n<meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\" />\n<meta name=\"robots\" content=\"noindex, nofollow\" />\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />\n<link rel=\"stylesheet\" id=\"cf_styles-css\" href=\"/cdn-cgi/styles/cf.errors.css\" />\n<!--[if lt IE 9]><link rel=\"stylesheet\" id='cf_styles-ie-css' href=\"/cdn-cgi/styles/cf.errors.ie.css\" /><![endif]-->\n<style>body{margin:0;padding:0}</style>\n\n\n<!--[if gte IE 10]><!-->\n<script>\n  if (!navigator.cookieEnabled) {\n    window.addEventListener('DOMContentLoaded', function () {\n      var cookieEl = document.getElementById('cookie-alert');\n      cookieEl.style.display = 'block';\n    })\n  }\n</script>\n<!--<![endif]-->\n\n</head>\n<body>\n    <div id=\"cf-wrapper\">\n        <div class=\"cf-alert cf-alert-error cf-cookie-error\" id=\"cookie-alert\" data-translate=\"enable_cookies\">Please enable cookies.</div>\n        <div id=\"cf-error-details\" class=\"cf-error-details-wrapper\">\n            <div class=\"cf-wrapper cf-header cf-error-overview\">\n                <h1>\n                    <span class=\"cf-error-type\" data-translate=\"error\">Error</span>\n                    <span class=\"cf-error-code\">1101</span>\n                    <small class=\"heading-ray-id\">Ray ID: a5cf4ab78cd61aba &bull; 2026-11-19 12:41:55 UTC</small>\n                </h1>\n                <h2 class=\"cf-subheadline\" data-translate=\"error_desc\">Worker threw exception</h2>\n            </div><!-- /.header -->\n    \n            <section></section><!-- spacer -->\n    \n            <div class=\"cf-section cf-wrapper\">\n                <div class=\"cf-columns two\">\n                    <div class=\"cf-column\">\n                        <h2 data-translate=\"what_happened\">What happened?</h2>\n                            <p>You've requested a page on a website (forum.reginaldoo.com) that is on the <a href=\"https://www.cloudflare.com/5xx-error-landing?utm_source=error_100x\" target=\"_blank\">Cloudflare</a> network. An unknown error occurred while rendering the page.</p>\n                    </div>\n                    \n                    <div class=\"cf-column\">\n                        <h2 data-translate=\"what_can_i_do\">What can I do?</h2>\n                            <p><strong>If you are the owner of this website:</strong><br />refer to <a href=\"https://developers.cloudflare.com/workers/observability/errors/\" target=\"_blank\">Workers - Errors and Exceptions</a> and check Workers Logs for forum.reginaldoo.com.</p>\n                    </div>\n                    \n                </div>\n            </div><!-- /.section -->\n    \n            <div class=\"cf-error-footer cf-wrapper w-240 lg:w-full py-10 sm:py-4 sm:px-8 mx-auto text-center sm:text-left border-solid border-0 border-t border-gray-300\">\n    <p class=\"text-13\">\n      <span class=\"cf-footer-item sm:block sm:mb-1\">Cloudflare Ray ID: <strong class=\"font-semibold\">a5cf4ab78cd61aba</strong></span>\n      <span class=\"cf-footer-separator sm:hidden\">&bull;</span>\n      <span id=\"cf-footer-item-ip\" class=\"cf-footer-item hidden sm:block sm:mb-1\">\n        Your IP:\n        <button type=\"button\" id=\"cf-footer-ip-reveal\" class=\"cf-footer-ip-reveal-btn\">Click to reveal</button>\n        <span class=\"hidden\" id=\"cf-footer-ip\">177.221.125.222</span>\n        <span class=\"cf-footer-separator sm:hidden\">&bull;</span>\n      </span>\n      <span class=\"cf-footer-item sm:block sm:mb-1\"><span>Performance &amp; security by</span> <a rel=\"noopener noreferrer\" href=\"https://www.cloudflare.com/5xx-error-landing\" id=\"brand_link\" target=\"_blank\">Cloudflare</a></span>\n      \n    </p>\n    <script>(function(){function d(){var b=a.getElementById(\"cf-footer-item-ip\"),c=a.getElementById(\"cf-footer-ip-reveal\");b&&\"classList\"in b&&(b.classList.remove(\"hidden\"),c.addEventListener(\"click\",function(){c.classList.add(\"hidden\");a.getElementById(\"cf-footer-ip\").classList.remove(\"hidden\")}))}var a=document;document.addEventListener&&a.addEventListener(\"DOMContentLoaded\",d)})();</script>\n  </div><!-- /.error-footer -->\n\n        </div><!-- /#cf-error-details -->\n    </div><!-- /#cf-wrapper -->\n\n     <script>\n    window._cf_translation = {};\n    \n    \n  </script> \n</body>\n</html>"
+}
