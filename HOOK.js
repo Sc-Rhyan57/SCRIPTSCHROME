@@ -5,6 +5,9 @@
     }
     window.__rcst_hooked = true;
 
+    // fetch nativo guardado ANTES de ser sobrescrito (usado por replay e crawler, não passa pelos hooks)
+    const nativeFetch = window.fetch.bind(window);
+
     // --- 1. CONFIGURAÇÕES E ESTADOS ---
     window.__rcst_hooks = window.__rcst_hooks || [];
     window.__rcst_blocked = window.__rcst_blocked || new Set();
@@ -61,6 +64,8 @@
     };
 
     // --- HELPERS ---
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
     function safeBase64Decode(b64Str) {
         if (typeof b64Str !== 'string') return null;
         try {
@@ -159,6 +164,11 @@
         return false;
     }
 
+    function escapeHtml(str) {
+        if (typeof str !== 'string') str = String(str);
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
     // --- 3. INTERFACE GRÁFICA ---
     const uiContainer = document.createElement('div');
     uiContainer.id = 'rcst-inspector-panel';
@@ -168,8 +178,9 @@
                 position: fixed;
                 bottom: 10px;
                 right: 10px;
-                width: 620px;
-                height: 480px;
+                width: 700px;
+                max-width: 96vw;
+                height: 520px;
                 background: #181825;
                 color: #cdd6f4;
                 font-family: monospace;
@@ -186,12 +197,14 @@
                 background: #11111b;
                 padding: 6px 10px;
                 display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
                 justify-content: space-between;
                 align-items: center;
                 border-bottom: 1px solid #313244;
                 user-select: none;
             }
-            #rcst-tabs { display: flex; gap: 4px; }
+            #rcst-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
             .rcst-tab {
                 background: #313244;
                 border: none;
@@ -211,7 +224,7 @@
                 cursor: pointer;
                 font-size: 10px;
             }
-            #rcst-actions button:hover, .rcst-btn-act:hover { background: #45475a; }
+            #rcst-actions button:hover, .rcst-btn-act:hover, .rcst-btn-copy:hover { background: #45475a; }
             #rcst-btn-autoscroll { background: #a6e3a1; color: #11111b !important; font-weight: bold; }
             #rcst-btn-zerotime { background: #f9e2af; color: #11111b !important; font-weight: bold; }
             #rcst-content { flex: 1; overflow-y: auto; padding: 8px; }
@@ -225,23 +238,28 @@
             .badge-clickstream { background: #cba6f7; color: #11111b; }
             .badge-modified { background: #a6e3a1; color: #11111b; }
             .badge-blocked { background: #f38ba8; color: #11111b; }
+            .badge-replay { background: #f5c2e7; color: #11111b; }
             .rcst-url { color: #89b4fa; font-weight: bold; }
             .rcst-args-box { margin-top: 4px; padding: 5px; background: #11111b; border-radius: 4px; border: 1px dashed #45475a; color: #a6adc8; max-height: 160px; overflow-y: auto; white-space: pre-wrap; }
             .rcst-decoded-box { margin-top: 6px; padding: 6px; background: #182238; border: 1px solid #89b4fa; border-radius: 4px; }
             .rcst-title { color: #f9e2af; font-weight: bold; }
-            .rcst-row-header { display: flex; justify-content: space-between; align-items: center; }
+            .rcst-row-header { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+            .rcst-row-btns { display: flex; gap: 4px; flex-shrink: 0; }
             .rcst-storage-sec { margin-bottom: 12px; }
             .rcst-storage-title { font-weight: bold; color: #89b4fa; border-bottom: 1px solid #313244; padding-bottom: 3px; margin-bottom: 6px; }
-            .rcst-input-group { display: flex; gap: 5px; margin-bottom: 6px; flex-wrap: wrap; }
-            .rcst-input-group input, .rcst-input-group textarea { flex: 1; background: #11111b; border: 1px solid #45475a; color: #cdd6f4; padding: 4px; border-radius: 4px; font-family: monospace; font-size: 11px; }
+            .rcst-input-group { display: flex; gap: 5px; margin-bottom: 6px; flex-wrap: wrap; align-items: center; }
+            .rcst-input-group input[type=text], .rcst-input-group input[type=number], .rcst-input-group textarea { flex: 1; background: #11111b; border: 1px solid #45475a; color: #cdd6f4; padding: 4px; border-radius: 4px; font-family: monospace; font-size: 11px; }
             .rcst-input-group textarea { height: 60px; resize: vertical; }
+            .rcst-input-group label { color: #a6adc8; }
         </style>
         <div id="rcst-header">
             <div id="rcst-tabs">
-                <button class="rcst-tab active" onclick="window.__rcst_switchTab('logs')">Network</button>
-                <button class="rcst-tab" onclick="window.__rcst_switchTab('lshooks')">Hooks Storage</button>
-                <button class="rcst-tab" onclick="window.__rcst_switchTab('rules')">Bloqueios & Injeção</button>
-                <button class="rcst-tab" onclick="window.__rcst_switchTab('storage')">Storage</button>
+                <button class="rcst-tab active" data-tab="logs" onclick="window.__rcst_switchTab('logs')">Network</button>
+                <button class="rcst-tab" data-tab="replay" onclick="window.__rcst_switchTab('replay')">Replay</button>
+                <button class="rcst-tab" data-tab="pages" onclick="window.__rcst_switchTab('pages')">Páginas</button>
+                <button class="rcst-tab" data-tab="lshooks" onclick="window.__rcst_switchTab('lshooks')">Hooks Storage</button>
+                <button class="rcst-tab" data-tab="rules" onclick="window.__rcst_switchTab('rules')">Bloqueios</button>
+                <button class="rcst-tab" data-tab="storage" onclick="window.__rcst_switchTab('storage')">Storage</button>
             </div>
             <div id="rcst-actions">
                 <button id="rcst-btn-zerotime" onclick="window.__rcst_toggleZeroTime()">Tempo=0: ON</button>
@@ -276,12 +294,12 @@
         }
     };
 
-    window.__rcst_switchTab = function (tab) {
+    function setTab(tab) {
         activeTab = tab;
-        document.querySelectorAll('.rcst-tab').forEach(b => b.classList.remove('active'));
-        if (event && event.target) event.target.classList.add('active');
+        document.querySelectorAll('.rcst-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
         render();
-    };
+    }
+    window.__rcst_switchTab = setTab;
 
     window.__rcst_clear = function () {
         if (activeTab === 'logs') logsList.length = 0;
@@ -291,7 +309,8 @@
     let isMinimized = false;
     window.__rcst_toggle = function () {
         isMinimized = !isMinimized;
-        uiContainer.style.height = isMinimized ? '30px' : '480px';
+        const h = document.getElementById('rcst-header').offsetHeight + 2;
+        uiContainer.style.height = isMinimized ? h + 'px' : '520px';
     };
 
     function render() {
@@ -304,6 +323,10 @@
                 contentDiv.appendChild(el);
             });
             if (autoScroll) contentDiv.scrollTop = contentDiv.scrollHeight;
+        } else if (activeTab === 'replay') {
+            renderReplayTab();
+        } else if (activeTab === 'pages') {
+            renderPagesTab();
         } else if (activeTab === 'lshooks') {
             renderLSHooksTab();
         } else if (activeTab === 'rules') {
@@ -313,7 +336,608 @@
         }
     }
 
-    // --- ABA HOOKS LOCALSTORAGE ---
+    // =====================================================================
+    // REPLAY DE REQUISIÇÕES
+    // =====================================================================
+    const reqStore = [];   // guarda as requisições (já pós-hooks) para repetir
+    let replayDraft = { method: 'GET', url: '', headers: '{}', body: '' };
+    let replayResult = '';
+
+    async function runReplay(req) {
+        const method = (req.method || 'GET').toUpperCase();
+        const init = { method, headers: req.headers || {}, credentials: 'include' };
+        if (method !== 'GET' && method !== 'HEAD' && req.body) init.body = req.body;
+        const t0 = performance.now();
+        try {
+            const r = await nativeFetch(req.url, init);
+            const resHeaders = {};
+            r.headers.forEach((v, k) => { resHeaders[k] = v; });
+            const text = await r.text();
+            const ms = Math.round(performance.now() - t0);
+            addLogToUI({
+                type: 'fetch', method, url: req.url, headers: init.headers, resHeaders,
+                body: req.body || '', status: r.status, responseBody: text, replay: true, ms
+            });
+            return { status: r.status, ms, headers: resHeaders, body: text };
+        } catch (e) {
+            addLogToUI({
+                type: 'fetch', method, url: req.url, headers: init.headers, body: req.body || '',
+                status: 0, responseBody: 'Erro no replay: ' + e.message, replay: true
+            });
+            return { error: e.message };
+        }
+    }
+
+    window.__rcst_replay = async function (id, btn) {
+        const req = reqStore[id];
+        if (!req) return;
+        if (btn) btn.innerText = '…';
+        await runReplay(req);
+    };
+
+    window.__rcst_editReplay = function (id) {
+        const r = reqStore[id];
+        if (!r) return;
+        replayDraft = {
+            method: r.method || 'GET',
+            url: r.url,
+            headers: JSON.stringify(r.headers || {}, null, 2),
+            body: r.body || ''
+        };
+        replayResult = '';
+        setTab('replay');
+    };
+
+    window.__rcst_sendDraft = async function () {
+        const g = id => document.getElementById(id);
+        replayDraft.method = g('rcst-rp-method').value.trim() || 'GET';
+        replayDraft.url = g('rcst-rp-url').value.trim();
+        replayDraft.headers = g('rcst-rp-headers').value;
+        replayDraft.body = g('rcst-rp-body').value;
+
+        let headers = {};
+        try { headers = replayDraft.headers.trim() ? JSON.parse(replayDraft.headers) : {}; }
+        catch (e) { replayResult = 'Headers inválidos (precisa ser JSON): ' + e.message; renderReplayTab(); return; }
+        if (!replayDraft.url) { replayResult = 'Informe a URL.'; renderReplayTab(); return; }
+
+        replayResult = 'Enviando...';
+        renderReplayTab();
+        const res = await runReplay({ method: replayDraft.method, url: replayDraft.url, headers, body: replayDraft.body });
+        if (res.error) replayResult = 'ERRO: ' + res.error;
+        else replayResult = `HTTP ${res.status}  (${res.ms}ms)\n\n--- Response Headers ---\n${JSON.stringify(res.headers, null, 2)}\n\n--- Response Body ---\n${res.body}`;
+        if (activeTab === 'replay') renderReplayTab();
+    };
+
+    function renderReplayTab() {
+        contentDiv.innerHTML = `
+            <div class="rcst-storage-sec">
+                <div class="rcst-storage-title">↻ Editar e Repetir Requisição</div>
+                <div style="margin-bottom:6px; color:#a6adc8;">Use "✎ Editar" em qualquer item da aba Network para carregar aqui. A resposta aparece abaixo e também na aba Network (badge REPLAY). A aplicação NÃO recebe a resposta.</div>
+                <div class="rcst-input-group">
+                    <input type="text" id="rcst-rp-method" value="${escapeHtml(replayDraft.method)}" style="flex:0.2;" placeholder="Método" />
+                    <input type="text" id="rcst-rp-url" value="${escapeHtml(replayDraft.url)}" placeholder="URL" />
+                </div>
+                <div class="rcst-input-group"><textarea id="rcst-rp-headers" placeholder='Headers (JSON)'>${escapeHtml(replayDraft.headers)}</textarea></div>
+                <div class="rcst-input-group"><textarea id="rcst-rp-body" placeholder="Body">${escapeHtml(replayDraft.body)}</textarea></div>
+                <button class="rcst-btn-act" onclick="window.__rcst_sendDraft()">Enviar</button>
+            </div>
+            <div class="rcst-storage-sec">
+                <div class="rcst-row-header">
+                    <div class="rcst-storage-title" style="flex:1;">Resposta</div>
+                    <button class="rcst-btn-copy" onclick="window.__rcst_copy(this.getAttribute('data-r'), this)" data-r="${escapeHtml(replayResult)}">Copiar</button>
+                </div>
+                <div class="rcst-args-box" style="max-height:240px;">${replayResult ? escapeHtml(replayResult) : '<i>Nenhuma resposta ainda.</i>'}</div>
+            </div>
+        `;
+    }
+
+    // =====================================================================
+    // DOWNLOAD DE PÁGINA + CRAWLER
+    // =====================================================================
+    const cssTextCache = new Map();
+    const imgCache = new Map();
+    const htmlCache = new Map();
+
+    const cfg = {
+        depth: 1,
+        max: 20,
+        include: '',
+        exclude: 'logout|logoff|signout|sair|delete|excluir|remove',
+        delay: 200,
+        keepScripts: false,
+        inlineImages: true
+    };
+    let discovered = [];   // { url, checked }
+    let pagesStatus = '';
+
+    const NON_HTML = /\.(pdf|zip|rar|7z|png|jpe?g|gif|webp|svg|ico|mp4|mp3|avi|mov|css|js|json|xml|docx?|xlsx?|pptx?|csv|txt|woff2?|ttf)$/i;
+
+    function setStatus(t) {
+        pagesStatus = t;
+        const el = document.getElementById('rcst-pages-status');
+        if (el) el.textContent = t;
+    }
+
+    function blobToDataURL(blob) {
+        return new Promise((res, rej) => {
+            const fr = new FileReader();
+            fr.onload = () => res(fr.result);
+            fr.onerror = rej;
+            fr.readAsDataURL(blob);
+        });
+    }
+
+    function absUrl(v, base) {
+        if (!v) return v;
+        const t = v.trim();
+        if (!t || t[0] === '#' || /^(data:|javascript:|mailto:|tel:|blob:|about:)/i.test(t)) return v;
+        try { return new URL(t, base).href; } catch (e) { return v; }
+    }
+
+    function cssAbs(css, base) {
+        return css
+            .replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/gi, (m, q, u) => `url("${absUrl(u, base)}")`)
+            .replace(/@import\s+(['"])([^'"]+)\1/gi, (m, q, u) => `@import "${absUrl(u, base)}"`);
+    }
+
+    function srcsetAbs(s, base) {
+        return s.split(',').map(p => {
+            const parts = p.trim().split(/\s+/);
+            parts[0] = absUrl(parts[0], base);
+            return parts.join(' ');
+        }).join(', ');
+    }
+
+    function normUrl(href, base) {
+        try {
+            const u = new URL(href, base);
+            if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+            u.hash = '';
+            return u.href;
+        } catch (e) { return null; }
+    }
+
+    function saveBlob(name, blob) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    }
+
+    function uniqueName(url, used) {
+        const u = new URL(url);
+        let base = (u.pathname.replace(/^\/+|\/+$/g, '') || 'index').replace(/[^\w.\-]+/g, '_');
+        if (u.search) base += '_' + u.search.slice(1).replace(/[^\w]+/g, '_').slice(0, 40);
+        base = base.replace(/\.(html?|php|aspx?|jsp)$/i, '');
+        let name = base + '.html', n = 1;
+        while (used.has(name)) name = `${base}_${n++}.html`;
+        used.add(name);
+        return name;
+    }
+
+    // Processa um Document: absolutiza URLs, embute CSS e imagens, remove scripts (opcional)
+    async function processDoc(d, baseUrl, opts) {
+        const panel = d.getElementById('rcst-inspector-panel');
+        if (panel) panel.remove();
+        d.querySelectorAll('base').forEach(b => b.remove());
+
+        // 1) URLs absolutas
+        const attrs = ['href', 'src', 'poster', 'action', 'data-src'];
+        d.querySelectorAll('[href],[src],[poster],[action],[data-src],[srcset]').forEach(el => {
+            attrs.forEach(a => { if (el.hasAttribute(a)) el.setAttribute(a, absUrl(el.getAttribute(a), baseUrl)); });
+            if (el.hasAttribute('srcset')) el.setAttribute('srcset', srcsetAbs(el.getAttribute('srcset'), baseUrl));
+        });
+        d.querySelectorAll('[style*="url("]').forEach(el => el.setAttribute('style', cssAbs(el.getAttribute('style'), baseUrl)));
+
+        // 2) links entre páginas baixadas apontam para os arquivos locais
+        if (opts.linkMap) {
+            d.querySelectorAll('a[href]').forEach(a => {
+                try {
+                    const u = new URL(a.getAttribute('href'));
+                    const hash = u.hash;
+                    u.hash = '';
+                    const f = opts.linkMap.get(u.href);
+                    if (f) a.setAttribute('href', './' + f + hash);
+                } catch (e) { }
+            });
+        }
+
+        // 3) scripts
+        if (!opts.keepScripts) {
+            d.querySelectorAll('script, link[rel=modulepreload], link[rel=preload][as=script]').forEach(e => e.remove());
+        }
+
+        // 4) CSS embutido
+        d.querySelectorAll('style').forEach(s => { s.textContent = cssAbs(s.textContent, baseUrl); });
+        const links = [...d.querySelectorAll('link[rel~="stylesheet"][href]')];
+        await Promise.all(links.map(async l => {
+            const href = l.getAttribute('href');
+            try {
+                let css = cssTextCache.get(href);
+                if (css === undefined) {
+                    const r = await nativeFetch(href, { credentials: 'include' });
+                    if (!r.ok) throw new Error('http ' + r.status);
+                    css = cssAbs(await r.text(), href);
+                    cssTextCache.set(href, css);
+                }
+                const st = d.createElement('style');
+                st.setAttribute('data-inlined-from', href);
+                if (l.getAttribute('media')) st.setAttribute('media', l.getAttribute('media'));
+                st.textContent = css;
+                l.replaceWith(st);
+            } catch (e) { /* mantém o <link> com URL absoluta */ }
+        }));
+
+        // 5) imagens embutidas (data URI)
+        if (opts.inlineImages) {
+            const imgs = [...d.querySelectorAll('img[src]')].filter(i => !/^data:/i.test(i.getAttribute('src')));
+            for (let i = 0; i < imgs.length; i += 6) {
+                await Promise.all(imgs.slice(i, i + 6).map(async img => {
+                    const src = img.getAttribute('src');
+                    try {
+                        let du = imgCache.get(src);
+                        if (du === undefined) {
+                            const r = await nativeFetch(src, { credentials: 'include' });
+                            if (!r.ok) throw new Error('http ' + r.status);
+                            const b = await r.blob();
+                            if (b.size > 5 * 1024 * 1024) throw new Error('grande demais');
+                            du = await blobToDataURL(b);
+                            imgCache.set(src, du);
+                        }
+                        img.setAttribute('src', du);
+                        img.removeAttribute('srcset');
+                        img.removeAttribute('loading');
+                    } catch (e) { /* mantém URL absoluta */ }
+                }));
+            }
+        }
+
+        return serializeDoc(d, baseUrl);
+    }
+
+    function serializeDoc(d, baseUrl) {
+        const dt = d.doctype ? new XMLSerializer().serializeToString(d.doctype) : '<!DOCTYPE html>';
+        return `${dt}\n<!-- Salvo de ${baseUrl} em ${new Date().toISOString()} -->\n${d.documentElement.outerHTML}`;
+    }
+
+    // Snapshot do DOM ATUAL (com alterações de JS, valores de formulário, canvas, CSS dinâmico)
+    async function snapshotCurrent(opts) {
+        const live = document;
+        const clone = document.cloneNode(true);
+        const q = (doc, s) => [...doc.querySelectorAll(s)];
+
+        // valores de formulário
+        const lf = q(live, 'input,textarea,select'), cf = q(clone, 'input,textarea,select');
+        lf.forEach((el, i) => {
+            const c = cf[i];
+            if (!c) return;
+            if (el.tagName === 'TEXTAREA') c.textContent = el.value;
+            else if (el.tagName === 'SELECT') {
+                [...c.options].forEach((o, j) => {
+                    if (el.options[j] && el.options[j].selected) o.setAttribute('selected', '');
+                    else o.removeAttribute('selected');
+                });
+            } else if (el.type === 'checkbox' || el.type === 'radio') {
+                if (el.checked) c.setAttribute('checked', ''); else c.removeAttribute('checked');
+            } else if (el.type !== 'file' && el.type !== 'password') {
+                c.setAttribute('value', el.value);
+            }
+        });
+
+        // <style> preenchidos via CSSOM (CSS-in-JS) e adoptedStyleSheets
+        const ls = q(live, 'style'), cs = q(clone, 'style');
+        ls.forEach((s, i) => {
+            if (cs[i] && !cs[i].textContent.trim() && s.sheet) {
+                try { cs[i].textContent = [...s.sheet.cssRules].map(r => r.cssText).join('\n'); } catch (e) { }
+            }
+        });
+        if (live.adoptedStyleSheets && live.adoptedStyleSheets.length) {
+            try {
+                const st = clone.createElement('style');
+                st.textContent = live.adoptedStyleSheets.flatMap(s => [...s.cssRules].map(r => r.cssText)).join('\n');
+                clone.head.appendChild(st);
+            } catch (e) { }
+        }
+
+        // imagens: usa a fonte realmente carregada (lazy-load / srcset)
+        const li = q(live, 'img'), ci = q(clone, 'img');
+        li.forEach((im, i) => {
+            if (ci[i] && im.currentSrc) { ci[i].setAttribute('src', im.currentSrc); ci[i].removeAttribute('srcset'); }
+        });
+
+        // canvas -> imagem (por último, pois altera a contagem de <img>)
+        const lc = q(live, 'canvas'), cc = q(clone, 'canvas');
+        lc.forEach((cv, i) => {
+            try {
+                const img = clone.createElement('img');
+                img.src = cv.toDataURL();
+                img.width = cv.width; img.height = cv.height;
+                ['class', 'style', 'id'].forEach(a => { if (cv.getAttribute(a)) img.setAttribute(a, cv.getAttribute(a)); });
+                cc[i].replaceWith(img);
+            } catch (e) { /* canvas "tainted" */ }
+        });
+
+        if (opts.raw) {
+            const p = clone.getElementById('rcst-inspector-panel');
+            if (p) p.remove();
+            const base = clone.createElement('base');
+            base.href = location.href;
+            clone.head.insertBefore(base, clone.head.firstChild);
+            return serializeDoc(clone, location.href);
+        }
+        return processDoc(clone, location.href, opts);
+    }
+
+    function currentFileName() {
+        return ((document.title || location.hostname).replace(/[^\w\-]+/g, '_').slice(0, 60) || 'pagina') + '.html';
+    }
+
+    // ---------- ZIP mínimo (sem compressão) ----------
+    const crcTable = (() => {
+        const t = new Uint32Array(256);
+        for (let n = 0; n < 256; n++) {
+            let c = n;
+            for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+            t[n] = c >>> 0;
+        }
+        return t;
+    })();
+
+    function crc32(buf) {
+        let c = 0xFFFFFFFF;
+        for (let i = 0; i < buf.length; i++) c = crcTable[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+        return (c ^ 0xFFFFFFFF) >>> 0;
+    }
+
+    function makeZip(files) {
+        const enc = new TextEncoder();
+        const chunks = [], central = [];
+        let offset = 0;
+        const now = new Date();
+        const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+        const dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+
+        files.forEach(f => {
+            const nameB = enc.encode(f.name), data = enc.encode(f.data), crc = crc32(data);
+            const lh = new DataView(new ArrayBuffer(30));
+            lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
+            lh.setUint16(8, 0, true); lh.setUint16(10, dosTime, true); lh.setUint16(12, dosDate, true);
+            lh.setUint32(14, crc, true); lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true);
+            lh.setUint16(26, nameB.length, true); lh.setUint16(28, 0, true);
+            chunks.push(new Uint8Array(lh.buffer), nameB, data);
+
+            const ch = new DataView(new ArrayBuffer(46));
+            ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true);
+            ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true); ch.setUint16(12, dosTime, true);
+            ch.setUint16(14, dosDate, true); ch.setUint32(16, crc, true); ch.setUint32(20, data.length, true);
+            ch.setUint32(24, data.length, true); ch.setUint16(28, nameB.length, true);
+            ch.setUint16(30, 0, true); ch.setUint16(32, 0, true); ch.setUint16(34, 0, true);
+            ch.setUint16(36, 0, true); ch.setUint32(38, 0, true); ch.setUint32(42, offset, true);
+            central.push(new Uint8Array(ch.buffer), nameB);
+
+            offset += 30 + nameB.length + data.length;
+        });
+
+        const cdSize = central.reduce((s, c) => s + c.length, 0);
+        const end = new DataView(new ArrayBuffer(22));
+        end.setUint32(0, 0x06054b50, true); end.setUint16(4, 0, true); end.setUint16(6, 0, true);
+        end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+        end.setUint32(12, cdSize, true); end.setUint32(16, offset, true); end.setUint16(20, 0, true);
+
+        return new Blob([...chunks, ...central, new Uint8Array(end.buffer)], { type: 'application/zip' });
+    }
+
+    // ---------- Crawler ----------
+    function readCfg() {
+        const g = id => document.getElementById(id);
+        if (!g('rcst-cfg-depth')) return;
+        cfg.depth = Math.max(0, parseInt(g('rcst-cfg-depth').value) || 0);
+        cfg.max = Math.max(1, parseInt(g('rcst-cfg-max').value) || 1);
+        cfg.delay = Math.max(0, parseInt(g('rcst-cfg-delay').value) || 0);
+        cfg.include = g('rcst-cfg-include').value.trim();
+        cfg.exclude = g('rcst-cfg-exclude').value.trim();
+        cfg.keepScripts = g('rcst-cfg-scripts').checked;
+        cfg.inlineImages = g('rcst-cfg-images').checked;
+    }
+
+    function makeFilter() {
+        const mk = s => {
+            if (!s) return null;
+            try { return new RegExp(s, 'i'); }
+            catch (e) { return { test: u => u.toLowerCase().includes(s.toLowerCase()) }; }
+        };
+        const inc = mk(cfg.include), exc = mk(cfg.exclude);
+        return u => {
+            const p = new URL(u).pathname;
+            if (NON_HTML.test(p)) return false;
+            if (inc && !inc.test(u)) return false;
+            if (exc && exc.test(u)) return false;
+            return true;
+        };
+    }
+
+    async function fetchHtml(url) {
+        const r = await nativeFetch(url, { credentials: 'include' });
+        const ct = r.headers.get('content-type') || '';
+        if (!r.ok || !/html/i.test(ct)) throw new Error('não é HTML / http ' + r.status);
+        return r.text();
+    }
+
+    // Busca em largura a partir da página atual (somente mesmo domínio, somente GET)
+    async function discoverPages() {
+        readCfg();
+        const ok = makeFilter();
+        const start = normUrl(location.href, location.href);
+        const seen = new Set([start]);
+        const found = [];
+        const bad = new Set();
+        const queue = [{ url: start, d: 0 }];
+        htmlCache.clear();
+
+        while (queue.length) {
+            const { url, d } = queue.shift();
+            if (d >= cfg.depth) continue;
+
+            let doc;
+            if (d === 0) {
+                doc = document;
+            } else {
+                setStatus(`Analisando (${found.length}/${cfg.max}): ${url}`);
+                try {
+                    const html = await fetchHtml(url);
+                    htmlCache.set(url, html);
+                    doc = new DOMParser().parseFromString(html, 'text/html');
+                } catch (e) { bad.add(url); continue; }
+                await sleep(cfg.delay);
+            }
+
+            for (const a of doc.querySelectorAll('a[href]')) {
+                if (found.length >= cfg.max) break;
+                const u = normUrl(a.getAttribute('href'), url);
+                if (!u || seen.has(u)) continue;
+                seen.add(u);
+                if (new URL(u).origin !== location.origin) continue;
+                if (!ok(u)) continue;
+                found.push(u);
+                queue.push({ url: u, d: d + 1 });
+            }
+        }
+        return found.filter(u => !bad.has(u));
+    }
+
+    async function downloadPages(urls) {
+        readCfg();
+        const cur = normUrl(location.href, location.href);
+        const all = [cur, ...urls.filter(u => u !== cur)];
+        const used = new Set();
+        const linkMap = new Map();
+        all.forEach(u => linkMap.set(u, uniqueName(u, used)));
+        const opts = { keepScripts: cfg.keepScripts, inlineImages: cfg.inlineImages, linkMap };
+        const files = [];
+
+        setStatus('Salvando página atual...');
+        files.push({ name: linkMap.get(cur), data: await snapshotCurrent(opts) });
+
+        let i = 0;
+        for (const u of all.slice(1)) {
+            i++;
+            setStatus(`Baixando ${i}/${all.length - 1}: ${u}`);
+            try {
+                let html = htmlCache.get(u);
+                if (html === undefined) html = await fetchHtml(u);
+                const d = new DOMParser().parseFromString(html, 'text/html');
+                files.push({ name: linkMap.get(u), data: await processDoc(d, u, opts) });
+            } catch (e) {
+                console.warn('[RCST] Falha ao baixar', u, e);
+            }
+            await sleep(cfg.delay);
+        }
+
+        saveBlob(`paginas_${location.hostname}_${Date.now()}.zip`, makeZip(files));
+        setStatus(`Concluído: ${files.length} página(s) salvas em ZIP.`);
+    }
+
+    window.__rcst_savePage = async function (raw) {
+        readCfg();
+        setStatus('Gerando arquivo...');
+        try {
+            const html = await snapshotCurrent({ raw, keepScripts: cfg.keepScripts, inlineImages: cfg.inlineImages });
+            saveBlob(currentFileName(), new Blob([html], { type: 'text/html;charset=utf-8' }));
+            setStatus('Página salva.');
+        } catch (e) {
+            setStatus('Erro ao salvar: ' + e.message);
+        }
+    };
+
+    window.__rcst_discover = async function () {
+        setStatus('Procurando páginas...');
+        try {
+            const urls = await discoverPages();
+            discovered = urls.map(u => ({ url: u, checked: true }));
+            setStatus(`${urls.length} página(s) encontrada(s).`);
+        } catch (e) { setStatus('Erro: ' + e.message); }
+        if (activeTab === 'pages') renderPagesTab();
+    };
+
+    window.__rcst_downloadSelected = async function () {
+        readCfg();
+        try { await downloadPages(discovered.filter(x => x.checked).map(x => x.url)); }
+        catch (e) { setStatus('Erro: ' + e.message); }
+    };
+
+    window.__rcst_auto = async function () {
+        setStatus('Procurando páginas...');
+        try {
+            const urls = await discoverPages();
+            discovered = urls.map(u => ({ url: u, checked: true }));
+            if (activeTab === 'pages') renderPagesTab();
+            await downloadPages(urls);
+        } catch (e) { setStatus('Erro: ' + e.message); }
+    };
+
+    window.__rcst_toggleDisc = function (i, v) { if (discovered[i]) discovered[i].checked = v; };
+    window.__rcst_checkAll = function (v) {
+        readCfg();
+        discovered.forEach(x => x.checked = v);
+        renderPagesTab();
+    };
+
+    function renderPagesTab() {
+        const chk = v => v ? 'checked' : '';
+        let list = discovered.length
+            ? discovered.map((x, i) => `<label style="display:block; word-break:break-all;"><input type="checkbox" ${chk(x.checked)} onchange="window.__rcst_toggleDisc(${i}, this.checked)"> ${escapeHtml(x.url)}</label>`).join('')
+            : '<i>Nenhuma página listada. Clique em "Procurar páginas".</i>';
+
+        contentDiv.innerHTML = `
+            <div class="rcst-storage-sec">
+                <div class="rcst-storage-title">💾 Baixar página atual</div>
+                <div style="margin-bottom:6px; color:#a6adc8;">
+                    <b>Offline</b>: salva o DOM exatamente como está agora (alterações de JS, valores de formulários, canvas, CSS dinâmico), com CSS e imagens embutidos.<br>
+                    <b>HTML bruto</b>: salva o DOM atual sem embutir recursos (usa &lt;base&gt; para carregar do site).
+                </div>
+                <button class="rcst-btn-act" onclick="window.__rcst_savePage(false)">Baixar página (offline)</button>
+                <button class="rcst-btn-act" onclick="window.__rcst_savePage(true)">Baixar HTML bruto</button>
+            </div>
+
+            <div class="rcst-storage-sec">
+                <div class="rcst-storage-title">🕷️ Procurar outras páginas e baixar</div>
+                <div class="rcst-input-group">
+                    <label>Profundidade <input type="number" id="rcst-cfg-depth" min="0" value="${cfg.depth}" style="width:50px; flex:none;"></label>
+                    <label>Máx. páginas <input type="number" id="rcst-cfg-max" min="1" value="${cfg.max}" style="width:60px; flex:none;"></label>
+                    <label>Delay (ms) <input type="number" id="rcst-cfg-delay" min="0" value="${cfg.delay}" style="width:60px; flex:none;"></label>
+                </div>
+                <div class="rcst-input-group">
+                    <input type="text" id="rcst-cfg-include" value="${escapeHtml(cfg.include)}" placeholder="Incluir somente URLs que casem (regex/texto) — opcional">
+                </div>
+                <div class="rcst-input-group">
+                    <input type="text" id="rcst-cfg-exclude" value="${escapeHtml(cfg.exclude)}" placeholder="Ignorar URLs que casem (regex/texto)">
+                </div>
+                <div class="rcst-input-group">
+                    <label><input type="checkbox" id="rcst-cfg-images" ${chk(cfg.inlineImages)}> embutir imagens</label>
+                    <label><input type="checkbox" id="rcst-cfg-scripts" ${chk(cfg.keepScripts)}> manter scripts</label>
+                </div>
+                <div class="rcst-input-group">
+                    <button class="rcst-btn-act" onclick="window.__rcst_discover()">1) Procurar páginas</button>
+                    <button class="rcst-btn-act" onclick="window.__rcst_downloadSelected()">2) Baixar selecionadas (ZIP)</button>
+                    <button class="rcst-btn-act" style="background:#a6e3a1; color:#11111b;" onclick="window.__rcst_auto()">⚡ Auto: procurar + baixar</button>
+                </div>
+                <div id="rcst-pages-status" style="color:#f9e2af; margin-bottom:6px;">${escapeHtml(pagesStatus)}</div>
+                <div class="rcst-input-group">
+                    <button class="rcst-btn-act" onclick="window.__rcst_checkAll(true)">Marcar todas</button>
+                    <button class="rcst-btn-act" onclick="window.__rcst_checkAll(false)">Desmarcar todas</button>
+                    <span style="color:#a6adc8;">${discovered.length} encontrada(s) — a página atual é sempre incluída</span>
+                </div>
+                <div class="rcst-args-box" style="max-height:200px;">${list}</div>
+            </div>
+        `;
+    }
+
+    // =====================================================================
+    // ABA HOOKS LOCALSTORAGE
+    // =====================================================================
     function renderLSHooksTab() {
         let html = `
             <div class="rcst-storage-sec">
@@ -357,6 +981,7 @@
 
         contentDiv.innerHTML = html;
     }
+    window.renderLSHooksTab = renderLSHooksTab; // necessário para os onclick inline
 
     window.__rcst_addGetHookFromUI = function () {
         const key = document.getElementById('rcst-ls-get-key').value.trim();
@@ -402,6 +1027,7 @@
         html += `</div></div>`;
         contentDiv.innerHTML = html;
     }
+    window.renderRulesTab = renderRulesTab; // necessário para os onclick inline
 
     window.__rcst_addBlockFromUI = function () {
         const inp = document.getElementById('rcst-block-input');
@@ -452,6 +1078,9 @@
         contentDiv.innerHTML = html;
     }
 
+    // =====================================================================
+    // LOG DE REDE
+    // =====================================================================
     function addLogToUI(data) {
         let badgeClass = 'badge-xhr';
         if (data.type.startsWith('fetch')) badgeClass = 'badge-fetch';
@@ -461,7 +1090,19 @@
 
         const isClickstream = data.url.includes('clickstream');
         if (isClickstream) badgeClass = 'badge-clickstream';
+        if (data.replay) badgeClass = 'badge-replay';
         if (data.blocked) badgeClass = 'badge-blocked';
+
+        // guarda a requisição para permitir repetir / editar
+        let reqId = -1;
+        if (data.type === 'xhr' || data.type === 'fetch') {
+            reqId = reqStore.push({
+                method: data.method,
+                url: data.url,
+                headers: data.headers || {},
+                body: data.body || ''
+            }) - 1;
+        }
 
         const args = parseArgs(data.url, data.body);
         const hasQuery = Object.keys(args.queryParams).length > 0;
@@ -535,17 +1176,27 @@
 
         const modifiedTag = data.modified ? `<span class="rcst-badge badge-modified">INJETADO (spent_time=0)</span>` : '';
         const blockedTag = data.blocked ? `<span class="rcst-badge badge-blocked">BLOQUEADO</span>` : '';
-        const statusTag = data.status ? ` [${data.status}]` : '';
+        const replayTag = data.replay ? `<span class="rcst-badge badge-replay">REPLAY</span>` : '';
+        const statusTag = data.status ? ` [${data.status}${data.ms ? ' · ' + data.ms + 'ms' : ''}]` : '';
+
+        const replayBtns = reqId >= 0
+            ? `<button class="rcst-btn-copy" onclick="window.__rcst_replay(${reqId}, this)">↻ Repetir</button>
+               <button class="rcst-btn-copy" onclick="window.__rcst_editReplay(${reqId})">✎ Editar</button>`
+            : '';
 
         const html = `
             <div class="rcst-row-header">
                 <div>
                     <span class="rcst-badge ${badgeClass}">${data.blocked ? 'BLOCKED' : (isClickstream ? 'CLICKSTREAM' : (data.method || data.type.toUpperCase()))}</span>
+                    ${replayTag}
                     ${modifiedTag}
                     ${blockedTag}
-                    <span class="rcst-url">${data.url}</span>${statusTag}
+                    <span class="rcst-url">${escapeHtml(data.url)}</span>${statusTag}
                 </div>
-                <button class="rcst-btn-copy" onclick="window.__rcst_copy(this.getAttribute('data-raw'), this)" data-raw="${rawJsonToCopy}">Copiar Tudo</button>
+                <div class="rcst-row-btns">
+                    ${replayBtns}
+                    <button class="rcst-btn-copy" onclick="window.__rcst_copy(this.getAttribute('data-raw'), this)" data-raw="${rawJsonToCopy}">Copiar Tudo</button>
+                </div>
             </div>
             ${argsHtml}
         `;
@@ -553,11 +1204,6 @@
         logsList.push(html);
         if (logsList.length > 200) logsList.shift();
         if (activeTab === 'logs') render();
-    }
-
-    function escapeHtml(str) {
-        if (typeof str !== 'string') str = String(str);
-        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
 
     function parseXHRResponseHeaders(headerStr) {
@@ -591,7 +1237,7 @@
         var isModified = (d.body !== origBody || d.url !== origUrl || d.modified);
 
         if (isBlocked(d.url)) {
-            addLogToUI({ type: 'xhr', method: d.method, url: d.url, status: 0, responseBody: 'Requisição cancelada pelo RCST Inspector', blocked: true });
+            addLogToUI({ type: 'xhr', method: d.method, url: d.url, headers: d.headers, body: d.body, status: 0, responseBody: 'Requisição cancelada pelo RCST Inspector', blocked: true });
             return;
         }
 
@@ -631,7 +1277,7 @@
         var isModified = (d.body !== b || d.url !== u || d.modified);
 
         if (isBlocked(d.url)) {
-            addLogToUI({ type: 'fetch', method: m, url: d.url, body: d.body, status: 0, responseBody: 'Requisição cancelada pelo RCST Inspector', blocked: true });
+            addLogToUI({ type: 'fetch', method: m, url: d.url, headers: d.headers, body: d.body, status: 0, responseBody: 'Requisição cancelada pelo RCST Inspector', blocked: true });
             return Promise.reject(new Error('Bloqueado pelo RCST Inspector'));
         }
 
@@ -679,7 +1325,7 @@
         wsInstance.send = function (data) {
             let bodyStr = typeof data === 'string' ? data : (data instanceof ArrayBuffer ? '[ArrayBuffer Data]' : String(data));
             let d = { type: 'ws-send', method: 'WS-SEND', url: wsUrl, body: bodyStr };
-            
+
             applyHooks(d);
 
             if (isBlocked(wsUrl)) {
@@ -702,7 +1348,7 @@
         wsInstance.addEventListener('message', function (event) {
             let msgData = typeof event.data === 'string' ? event.data : (event.data instanceof ArrayBuffer ? '[ArrayBuffer Data]' : String(event.data));
             let d = { type: 'ws-recv', method: 'WS-RECV', url: wsUrl, responseBody: msgData };
-            
+
             applyHooks(d);
 
             addLogToUI({
@@ -725,5 +1371,5 @@
 
     window.WebSocket = CustomWebSocket;
 
-    console.log("[RCST Inspector] Inicializado com sucesso! Suporte a WebSockets (WS/WSS) ativado.");
+    console.log("[RCST Inspector] Inicializado com sucesso! WebSockets, Replay, Download de página e Crawler ativados.");
 })();
