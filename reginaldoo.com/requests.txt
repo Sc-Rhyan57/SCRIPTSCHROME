@@ -1,0 +1,57 @@
+{
+  "url": "/api/auth/me?_t=1795088764955",
+  "method": "GET",
+  "status": 200,
+  "requestHeaders": {
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Pragma": "no-cache"
+  },
+  "queryParams": {
+    "_t": "1795088764955"
+  },
+  "requestBody": null,
+  "decodedPayload": null,
+  "responseHeaders": {
+    "alt-svc": "h3=\":443\"; ma=86400",
+    "cf-ray": "a5cef8ebdabfc279-GRU",
+    "content-encoding": "zstd",
+    "content-type": "application/json",
+    "date": "Thu, 19 Nov 2026 11:46:05 GMT",
+    "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+    "priority": "u=1,i",
+    "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=2w5VZGAKBVPlnwRBUe3siEbUJL5Cw%2FUcsC5OuC5tgfkpILoOquK6bwyJCS8Sdw0z9cfDd6W2clbe70X%2BGp5%2BKHKEibRxioaMbeqEzFZrDHcB%2F3c0wPZ6Xf3TpaHo7PjlfVPBCKl1bw%3D%3D\"}]}",
+    "server": "cloudflare",
+    "server-timing": "cfExtPri",
+    "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "x-opennext": "1"
+  },
+  "responseBody": "{\"authenticated\":false,\"isDiscordAuth\":false}"
+}
+
+{
+  "url": "/api/community",
+  "method": "GET",
+  "status": 200,
+  "requestHeaders": {},
+  "queryParams": {},
+  "requestBody": null,
+  "decodedPayload": null,
+  "responseHeaders": {
+    "alt-svc": "h3=\":443\"; ma=86400",
+    "cache-control": "private, no-cache, no-store, must-revalidate",
+    "cf-ray": "a5cef6c8ccc4a417-GRU",
+    "content-encoding": "zstd",
+    "content-type": "application/json",
+    "date": "Thu, 19 Nov 2026 11:44:37 GMT",
+    "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+    "priority": "u=1,i",
+    "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=sKs8fWmF4rHupt2Q1yO61It36u%2B6aca83kO9Z%2B%2BhBRDvXpqYz9EChz5NTJnWzQh7TBF98dI%2F5tVtr6u3R7z0Cd9QJ3XXJAJCCLC5YG1LbegDP96bRDYv%2BO4qqD6dxTRWly3vM60fzw%3D%3D\"}]}",
+    "server": "cloudflare",
+    "server-timing": "cfExtPri",
+    "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "x-opennext": "1"
+  },
+  "responseBody": "{\"player\":{\"user_id\":\"775061158276235274\",\"username\":\"void_11131\",\"wallet\":0,\"bank\":1259.07,\"job_id\":\"SEGURANCA\",\"xp\":335,\"streak\":4,\"warnings\":0,\"last_shift_at\":0,\"loan_debt\":0,\"loan_cycles\":0,\"agiota_debt\":0,\"agiota_cycles\":0,\"last_interest_at\":0,\"level\":3,\"bio\":\"\",\"avatar_url\":\"https://cdn.discordapp.com/avatars/775061158276235274/236432be76042adc227d1648075031b6.png?size=512\",\"banner_url\":\"\",\"title_badge\":\"\",\"badge_color\":\"\"},\"threads\":[{\"id\":\"thread_1795034372179_4httc\",\"title\":\"Sei não\",\"description\":\"Oi, eu sou o uzoles\\nE eu sou o designer de todas as artes do Reginaldoo :D\",\"category\":\"Geral\",\"author\":\"nicolasbdl.\",\"author_id\":\"1483119853480185998\",\"replies\":0,\"created_at\":1795034372179,\"slug\":\"thread_1795034372179_4httc\",\"date\":\"18 de nov. de 2026\"},{\"id\":\"thread_1794973859289_7j97p\",\"title\":\"Oi\",\"description\":\"Teste\",\"category\":\"Geral\",\"author\":\"brutalvicious.\",\"author_id\":\"1526427958846427196\",\"replies\":0,\"created_at\":1794973859289,\"slug\":\"thread_1794973859289_7j97p\",\"date\":\"18 de nov. de 2026\"}],\"availableRoles\":[],\"isDiscordAuth\":false}"
+}
+
+
